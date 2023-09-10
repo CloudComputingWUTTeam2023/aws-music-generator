@@ -114,14 +114,17 @@
         const tableBody = document.querySelector("#results-table tbody");
         data.forEach(item => {
             let row = document.createElement("tr");
-            let cell1 = document.createElement("td");
-            let cell2 = document.createElement("td");
+            let promptCell = document.createElement("td");
+            let generatedMusicCell = document.createElement("td");
 
-            cell1.textContent = item.prompt;
-            cell2.textContent = item.rating; // This assumes that the returned data has a field named 'music'
+            promptCell.textContent = item.prompt;
+            const audio = document.createElement("audio");
+            audio.setAttribute("src", item["audio-file-url"]);
+            audio.setAttribute("controls", "controls");
+            generatedMusicCell.appendChild(audio);
 
-            row.appendChild(cell1);
-            row.appendChild(cell2);
+            row.appendChild(promptCell);
+            row.appendChild(generatedMusicCell);
             tableBody.appendChild(row);
         });
     }
