@@ -4,6 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Audio Generator</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/aws-sdk/2.1043.0/aws-sdk.min.js"></script>
     <style>
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
@@ -105,6 +106,42 @@
     <tbody>
     </tbody>
 </table>
+
+
+<script>
+    // This function populates the table with data
+    function populateTable(data) {
+        const tableBody = document.querySelector("#results-table tbody");
+        data.forEach(item => {
+            let row = document.createElement("tr");
+            let cell1 = document.createElement("td");
+            let cell2 = document.createElement("td");
+
+            cell1.textContent = item.prompt;
+            cell2.textContent = item.rating; // This assumes that the returned data has a field named 'music'
+
+            row.appendChild(cell1);
+            row.appendChild(cell2);
+            tableBody.appendChild(row);
+        });
+    }
+
+    // Fetching data when the page loads
+    window.onload = function () {
+        fetch('https://z6w3d2q7o8.execute-api.us-east-1.amazonaws.com/entries') // Replace this with your API endpoint
+            .then(response => response.json())
+            .then(data => {
+                populateTable(data);
+            })
+            .catch(error => console.error('Error fetching data:', error));
+    };
+
+    // If you're going to have an event for the form submission, you can do it here.
+    document.getElementById("submit-btn").addEventListener("click", function (event) {
+        event.preventDefault();
+        // Call another function to handle form submission here.
+    });
+</script>
 
 </body>
 </html>
