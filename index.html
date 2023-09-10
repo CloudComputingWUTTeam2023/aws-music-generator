@@ -89,7 +89,7 @@
 
 <body>
 <h1>Welcome to Audio Generator</h1>
-<form>
+<form id="audio-form">
     <label for="input-text">Insert your prompt to generate music (describe the type of music you want to
         listen):</label> <br>
     <input type="text" id="input-text">
@@ -139,7 +139,24 @@
     // If you're going to have an event for the form submission, you can do it here.
     document.getElementById("submit-btn").addEventListener("click", function (event) {
         event.preventDefault();
-        // Call another function to handle form submission here.
+        const promptValue = document.getElementById("input-text").value;
+
+        fetch('https://z6w3d2q7o8.execute-api.us-east-1.amazonaws.com/entries', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                prompt: promptValue
+            })
+        })
+            .then(response => response.json())
+            .then(x => {console.log(x); return x})
+            .then(data => {
+                // populateTable([data]);
+                document.getElementById("input-text").value = "";  // Reset the input field
+            })
+            .catch(error => console.error('Error:', error));
     });
 </script>
 
