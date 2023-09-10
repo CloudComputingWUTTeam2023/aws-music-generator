@@ -131,7 +131,7 @@
         fetch('https://z6w3d2q7o8.execute-api.us-east-1.amazonaws.com/entries') // Replace this with your API endpoint
             .then(response => response.json())
             .then(data => {
-                populateTable(data);
+                populateTable(data["data"]);
             })
             .catch(error => console.error('Error fetching data:', error));
     };
