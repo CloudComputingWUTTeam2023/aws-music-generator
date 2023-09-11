@@ -110,28 +110,51 @@
 
 
 <script>
+    function generatePreSignedURL(fileId) {
+        return fetch(`https://6spmsbdr4c.execute-api.us-east-1.amazonaws.com/generate-url/${fileId}`)
+            .then(response => response.json())
+            .then(data => data.url)
+            .catch(error => {
+                console.error('Error fetching resigned URL:', error);
+                return null;
+            });
+    }
+
     // This function populates the table with data
     function populateTable(data) {
         const tableBody = document.querySelector("#results-table tbody");
-        data.forEach(item => {
-            let row = document.createElement("tr");
-            let dateCell = document.createElement("td");
-            let promptCell = document.createElement("td");
-            let generatedMusicCell = document.createElement("td");
 
-            promptCell.textContent = item.prompt;
-            dateCell.textContent = new Date(item["date-created"]).toLocaleString();
-            const audio = document.createElement("audio");
-            audio.setAttribute("src", item["audio-file-url"]);
-            audio.setAttribute("controls", "controls");
-            generatedMusicCell.appendChild(audio);
+        // Use a Promise to handle async operations inside a forEach loop
+        let promises = data.map(item => {
+            return generatePreSignedURL(item.file_id)
+                .then(resignedUrl => {
+                    let row = document.createElement("tr");
+                    let dateCell = document.createElement("td");
+                    let promptCell = document.createElement("td");
+                    let generatedMusicCell = document.createElement("td");
 
-            row.appendChild(promptCell);
-            row.appendChild(generatedMusicCell);
-            row.appendChild(dateCell);
+                    promptCell.textContent = item.prompt;
+                    dateCell.textContent = new Date(item["date-created"]).toLocaleString();
+                    const audio = document.createElement("audio");
 
-            tableBody.appendChild(row);
+                    if (resignedUrl) {
+                        audio.setAttribute("src", resignedUrl);
+                        audio.setAttribute("controls", "controls");
+                        generatedMusicCell.appendChild(audio);
+                    } else {
+                        generatedMusicCell.textContent = "Error loading audio";
+                    }
+
+                    row.appendChild(promptCell);
+                    row.appendChild(generatedMusicCell);
+                    row.appendChild(dateCell);
+
+                    tableBody.appendChild(row);
+                });
         });
+
+        // Use Promise.all to wait for all promises to complete
+        Promise.all(promises).catch(error => console.error("Error in populating table:", error));
     }
 
     // Global data array to store fetched data
