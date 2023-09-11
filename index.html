@@ -102,6 +102,7 @@
         <th id="prompt-header">Prompt</th>
         <th>Generated Music</th>
         <th id="date-header">Date</th>
+        <th>Rating</th>
     </tr>
     </thead>
     <tbody>
@@ -121,41 +122,81 @@
     }
 
     // This function populates the table with data
-    function populateTable(data) {
-        const tableBody = document.querySelector("#results-table tbody");
+function populateTable(data) {
+    const tableBody = document.querySelector("#results-table tbody");
 
-        // Use a Promise to handle async operations inside a forEach loop
-        let promises = data.map(item => {
-            return generatePreSignedURL(item.file_id)
-                .then(resignedUrl => {
-                    let row = document.createElement("tr");
-                    let dateCell = document.createElement("td");
-                    let promptCell = document.createElement("td");
-                    let generatedMusicCell = document.createElement("td");
+    let promises = data.map(item => {
+        return generatePreSignedURL(item.file_id)
+            .then(resignedUrl => {
+                let row = document.createElement("tr");
+                let promptCell = document.createElement("td");
+                let generatedMusicCell = document.createElement("td");
+                let dateCell = document.createElement("td");
+                let ratingCell = document.createElement("td");
 
-                    promptCell.textContent = item.prompt;
-                    dateCell.textContent = new Date(item["date-created"]).toLocaleString();
-                    const audio = document.createElement("audio");
+                promptCell.textContent = item.prompt;
+                dateCell.textContent = new Date(item["date-created"]).toLocaleString();
 
-                    if (resignedUrl) {
-                        audio.setAttribute("src", resignedUrl);
-                        audio.setAttribute("controls", "controls");
-                        generatedMusicCell.appendChild(audio);
-                    } else {
-                        generatedMusicCell.textContent = "Error loading audio";
+                // Create rating dropdown
+                const ratingDropdown = document.createElement("select");
+                let defaultOption = document.createElement("option");
+                defaultOption.value = "0";
+                defaultOption.textContent = "-";
+                ratingDropdown.appendChild(defaultOption);  // Default option representing no rating
+
+                for(let i=1; i<=5; i++) {
+                    let option = document.createElement("option");
+                    option.value = i;
+                    option.textContent = i;
+                    if (item.rating && i === item.rating) {
+                        option.selected = true;  // Set this option as selected if this is the saved rating
                     }
-
-                    row.appendChild(promptCell);
-                    row.appendChild(generatedMusicCell);
-                    row.appendChild(dateCell);
-
-                    tableBody.appendChild(row);
+                    ratingDropdown.appendChild(option);
+                }
+                ratingDropdown.addEventListener("change", function() {
+                    // Save the rating to DynamoDB when the user selects a rating.
+                    saveRating(item["file_id"], parseInt(ratingDropdown.value));
                 });
-        });
+                ratingCell.appendChild(ratingDropdown);
 
-        // Use Promise.all to wait for all promises to complete
-        Promise.all(promises).catch(error => console.error("Error in populating table:", error));
-    }
+                const audio = document.createElement("audio");
+                if (resignedUrl) {
+                    audio.setAttribute("src", resignedUrl);
+                    audio.setAttribute("controls", "controls");
+                    generatedMusicCell.appendChild(audio);
+                } else {
+                    generatedMusicCell.textContent = "Error loading audio";
+                }
+
+                row.appendChild(promptCell);
+                row.appendChild(generatedMusicCell);
+                row.appendChild(dateCell);
+                row.appendChild(ratingCell); // Append the rating cell to the row
+
+                tableBody.appendChild(row);
+            });
+    });
+
+    Promise.all(promises).catch(error => console.error("Error in populating table:", error));
+}
+function saveRating(fileId, rating) {
+    fetch('https://i1kcv9sst7.execute-api.us-east-1.amazonaws.com/update-rating', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+            file_id: fileId,
+            rating: rating
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        console.log("Rating saved successfully:", data);
+    })
+    .catch(error => console.error('Error saving rating:', error));
+}
+
 
     // Global data array to store fetched data
     let globalData = [];
