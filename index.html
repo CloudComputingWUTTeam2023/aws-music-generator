@@ -252,6 +252,14 @@
         return 0;
     }
 
+    function uuidv4() {
+        return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'
+            .replace(/[xy]/g, function (c) {
+                const r = Math.random() * 16 | 0,
+                    v = c == 'x' ? r : (r & 0x3 | 0x8);
+                return v.toString(16);
+            });
+    }
 
     // Event listener for the date header
     document.getElementById("date-header").addEventListener("click", function () {
@@ -293,31 +301,61 @@
             .catch(error => console.error('Error fetching data:', error));
     };
 
+    // Get all the entries from the DynamoDB
+    function addNewEntryToDynamoDB(promptValue, audio_name) {
+        return fetch('https://z6w3d2q7o8.execute-api.us-east-1.amazonaws.com/entries', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                prompt: promptValue,
+                file_path: audio_name,
+                rating: 0,
+                file_id: uuidv4()
+            })
+        })
+    }
+
+    function getRandomArbitrary(min, max) {
+        return Math.random() * (max - min) + min;
+    }
+
+    // Generate the audio + save to S3
+    function generateAndSaveMusic(frequency) {
+        return fetch('https://44f5041f23.execute-api.us-east-1.amazonaws.com/generate-music', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                frequency: getRandomArbitrary(200, 1000)
+            })
+        })
+            .then(response => response.json())
+            .then(data => {
+                console.log("Music successfully created. The path is:", data);
+                return data["audio_name"];
+            })
+            .catch(error => console.error('Error saving rating:', error));
+    }
 
     // If you're going to have an event for the form submission, you can do it here.
     document.getElementById("submit-btn").addEventListener("click", function (event) {
         event.preventDefault();
         const promptValue = document.getElementById("input-text").value;
 
-        fetch('https://z6w3d2q7o8.execute-api.us-east-1.amazonaws.com/entries', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-                prompt: promptValue
-            })
-        })
-            .then(response => response.json())
-            .then(x => {
-                console.log(x);
-                return x
-            })
-            .then(data => {
-                // populateTable([data]);
-                document.getElementById("input-text").value = "";  // Reset the input field
-            })
-            .catch(error => console.error('Error:', error));
+        generateAndSaveMusic(promptValue).then(audio_name =>
+            addNewEntryToDynamoDB(promptValue, audio_name).then(response => response.json())
+                .then(x => {
+                    console.log(x);
+                    return x
+                })
+                .then(data => {
+                    // populateTable([data]);
+                    document.getElementById("input-text").value = "";  // Reset the input field
+                })
+                .catch(error => console.error('Error:', error)));
     });
 
 </script>
