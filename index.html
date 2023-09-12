@@ -344,16 +344,14 @@
     document.getElementById("submit-btn").addEventListener("click", function (event) {
         event.preventDefault();
         const promptValue = document.getElementById("input-text").value;
+         // Reset the input field
+        document.getElementById("input-text").value = "";
 
         generateAndSaveMusic(promptValue).then(audio_name =>
             addNewEntryToDynamoDB(promptValue, audio_name).then(response => response.json())
                 .then(x => {
                     console.log(x);
                     return x
-                })
-                .then(data => {
-                    // populateTable([data]);
-                    document.getElementById("input-text").value = "";  // Reset the input field
                 })
                 .catch(error => console.error('Error:', error)));
     });
