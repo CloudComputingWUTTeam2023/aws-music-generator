@@ -122,80 +122,81 @@
     }
 
     // This function populates the table with data
-function populateTable(data) {
-    const tableBody = document.querySelector("#results-table tbody");
+    function populateTable(data) {
+        const tableBody = document.querySelector("#results-table tbody");
 
-    let promises = data.map(item => {
-        return generatePreSignedURL(item.file_id)
-            .then(resignedUrl => {
-                let row = document.createElement("tr");
-                let promptCell = document.createElement("td");
-                let generatedMusicCell = document.createElement("td");
-                let dateCell = document.createElement("td");
-                let ratingCell = document.createElement("td");
+        let promises = data.map(item => {
+            return generatePreSignedURL(item.file_id)
+                .then(resignedUrl => {
+                    let row = document.createElement("tr");
+                    let promptCell = document.createElement("td");
+                    let generatedMusicCell = document.createElement("td");
+                    let dateCell = document.createElement("td");
+                    let ratingCell = document.createElement("td");
 
-                promptCell.textContent = item.prompt;
-                dateCell.textContent = new Date(item["date-created"]).toLocaleString();
+                    promptCell.textContent = item.prompt;
+                    dateCell.textContent = new Date(item["date-created"]).toLocaleString();
 
-                // Create rating dropdown
-                const ratingDropdown = document.createElement("select");
-                let defaultOption = document.createElement("option");
-                defaultOption.value = "0";
-                defaultOption.textContent = "-";
-                ratingDropdown.appendChild(defaultOption);  // Default option representing no rating
+                    // Create rating dropdown
+                    const ratingDropdown = document.createElement("select");
+                    let defaultOption = document.createElement("option");
+                    defaultOption.value = "0";
+                    defaultOption.textContent = "-";
+                    ratingDropdown.appendChild(defaultOption);  // Default option representing no rating
 
-                for(let i=1; i<=5; i++) {
-                    let option = document.createElement("option");
-                    option.value = i;
-                    option.textContent = i;
-                    if (item.rating && i === item.rating) {
-                        option.selected = true;  // Set this option as selected if this is the saved rating
+                    for (let i = 1; i <= 5; i++) {
+                        let option = document.createElement("option");
+                        option.value = i;
+                        option.textContent = i;
+                        if (item.rating && i === item.rating) {
+                            option.selected = true;  // Set this option as selected if this is the saved rating
+                        }
+                        ratingDropdown.appendChild(option);
                     }
-                    ratingDropdown.appendChild(option);
-                }
-                ratingDropdown.addEventListener("change", function() {
-                    // Save the rating to DynamoDB when the user selects a rating.
-                    saveRating(item["file_id"], parseInt(ratingDropdown.value));
+                    ratingDropdown.addEventListener("change", function () {
+                        // Save the rating to DynamoDB when the user selects a rating.
+                        saveRating(item["file_id"], parseInt(ratingDropdown.value));
+                    });
+                    ratingCell.appendChild(ratingDropdown);
+
+                    const audio = document.createElement("audio");
+                    if (resignedUrl) {
+                        audio.setAttribute("src", resignedUrl);
+                        audio.setAttribute("controls", "controls");
+                        generatedMusicCell.appendChild(audio);
+                    } else {
+                        generatedMusicCell.textContent = "Error loading audio";
+                    }
+
+                    row.appendChild(promptCell);
+                    row.appendChild(generatedMusicCell);
+                    row.appendChild(dateCell);
+                    row.appendChild(ratingCell); // Append the rating cell to the row
+
+                    tableBody.appendChild(row);
                 });
-                ratingCell.appendChild(ratingDropdown);
+        });
 
-                const audio = document.createElement("audio");
-                if (resignedUrl) {
-                    audio.setAttribute("src", resignedUrl);
-                    audio.setAttribute("controls", "controls");
-                    generatedMusicCell.appendChild(audio);
-                } else {
-                    generatedMusicCell.textContent = "Error loading audio";
-                }
+        Promise.all(promises).catch(error => console.error("Error in populating table:", error));
+    }
 
-                row.appendChild(promptCell);
-                row.appendChild(generatedMusicCell);
-                row.appendChild(dateCell);
-                row.appendChild(ratingCell); // Append the rating cell to the row
-
-                tableBody.appendChild(row);
-            });
-    });
-
-    Promise.all(promises).catch(error => console.error("Error in populating table:", error));
-}
-function saveRating(fileId, rating) {
-    fetch('https://i1kcv9sst7.execute-api.us-east-1.amazonaws.com/update-rating', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-            file_id: fileId,
-            rating: rating
+    function saveRating(fileId, rating) {
+        fetch('https://i1kcv9sst7.execute-api.us-east-1.amazonaws.com/update-rating', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                file_id: fileId,
+                rating: rating
+            })
         })
-    })
-    .then(response => response.json())
-    .then(data => {
-        console.log("Rating saved successfully:", data);
-    })
-    .catch(error => console.error('Error saving rating:', error));
-}
+            .then(response => response.json())
+            .then(data => {
+                console.log("Rating saved successfully:", data);
+            })
+            .catch(error => console.error('Error saving rating:', error));
+    }
 
 
     // Global data array to store fetched data
@@ -251,6 +252,14 @@ function saveRating(fileId, rating) {
         return 0;
     }
 
+    function uuidv4() {
+        return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'
+            .replace(/[xy]/g, function (c) {
+                const r = Math.random() * 16 | 0,
+                    v = c == 'x' ? r : (r & 0x3 | 0x8);
+                return v.toString(16);
+            });
+    }
 
     // Event listener for the date header
     document.getElementById("date-header").addEventListener("click", function () {
@@ -292,31 +301,61 @@ function saveRating(fileId, rating) {
             .catch(error => console.error('Error fetching data:', error));
     };
 
+    // Get all the entries from the DynamoDB
+    function addNewEntryToDynamoDB(promptValue, audio_name) {
+        return fetch('https://z6w3d2q7o8.execute-api.us-east-1.amazonaws.com/entries', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                prompt: promptValue,
+                file_path: audio_name,
+                rating: 0,
+                file_id: uuidv4()
+            })
+        })
+    }
+
+    function getRandomArbitrary(min, max) {
+        return Math.random() * (max - min) + min;
+    }
+
+    // Generate the audio + save to S3
+    function generateAndSaveMusic(frequency) {
+        return fetch('https://44f5041f23.execute-api.us-east-1.amazonaws.com/generate-music', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                frequency: getRandomArbitrary(200, 1000)
+            })
+        })
+            .then(response => response.json())
+            .then(data => {
+                console.log("Music successfully created. The path is:", data);
+                return data["audio_name"];
+            })
+            .catch(error => console.error('Error saving rating:', error));
+    }
 
     // If you're going to have an event for the form submission, you can do it here.
     document.getElementById("submit-btn").addEventListener("click", function (event) {
         event.preventDefault();
         const promptValue = document.getElementById("input-text").value;
 
-        fetch('https://z6w3d2q7o8.execute-api.us-east-1.amazonaws.com/entries', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-                prompt: promptValue
-            })
-        })
-            .then(response => response.json())
-            .then(x => {
-                console.log(x);
-                return x
-            })
-            .then(data => {
-                // populateTable([data]);
-                document.getElementById("input-text").value = "";  // Reset the input field
-            })
-            .catch(error => console.error('Error:', error));
+        generateAndSaveMusic(promptValue).then(audio_name =>
+            addNewEntryToDynamoDB(promptValue, audio_name).then(response => response.json())
+                .then(x => {
+                    console.log(x);
+                    return x
+                })
+                .then(data => {
+                    // populateTable([data]);
+                    document.getElementById("input-text").value = "";  // Reset the input field
+                })
+                .catch(error => console.error('Error:', error)));
     });
 
 </script>
