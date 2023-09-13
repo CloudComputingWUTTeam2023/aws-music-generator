@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Audio Generator</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/aws-sdk/2.1043.0/aws-sdk.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/amazon-cognito-identity-js/5.0.3/amazon-cognito-identity.min.js"></script>
     <style>
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
@@ -111,6 +112,13 @@
 
 
 <script>
+    var poolData = {
+        UserPoolId: 'us-east-1_lMzoOd4YI',
+        ClientId: '6q3a6n2v70tak76od484n349cs'
+    };
+
+    var userPool = new AmazonCognitoIdentity.CognitoUserPool(poolData);
+
     function generatePreSignedURL(fileId) {
         return fetch(`https://6spmsbdr4c.execute-api.us-east-1.amazonaws.com/generate-url/${fileId}`)
             .then(response => response.json())
